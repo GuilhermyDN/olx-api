@@ -138,26 +138,35 @@ async function failJob(jobId, reason = null) {
 }
 
 async function cleanupPendingAndInProgress() {
-  // 1) Buscar IDs no banco (pra tentar remover da fila pelo mesmo ID, se você tiver essa ligação)
-  const rows = await db("jobs")
-    .select("id")
-    .whereIn("status", ["pending", "in_progress"]);
+  const client = await pool.connect();
 
-  const jobIds = rows.map((r) => r.id);
+  try {
+    await client.query("BEGIN");
 
-  // 2) Limpar/remover jobs da fila
-  // OBS: isso depende do provider. Vou deixar um método no queueService
-  const queue = await queueService.cleanByJobIds(jobIds);
+    // opcional: pegar ids antes só pra retornar contagem detalhada
+    const toDelete = await client.query(
+      `SELECT id FROM jobs WHERE status IN ('pending', 'in_progress')`
+    );
 
-  // 3) Deletar do banco
-  const deletedCount = await db("jobs")
-    .whereIn("status", ["pending", "in_progress"])
-    .del();
+    const del = await client.query(
+      `DELETE FROM jobs
+       WHERE status IN ('pending', 'in_progress')
+       RETURNING id`
+    );
 
-  return {
-    deletedCount,
-    queue,
-  };
+    await client.query("COMMIT");
+
+    return {
+      deletedCount: del.rowCount,
+      deletedIds: del.rows.map((r) => r.id), // se não quiser IDs, remove isso
+      scannedCount: toDelete.rowCount,
+    };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 module.exports = {

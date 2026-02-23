@@ -7,9 +7,6 @@ const authMiddleware = require("../middlewares/auth.middleware");
 router.post('/jobs', jobController.createJob);
 router.post('/jobs/next', jobController.nextJob);
 router.post('/jobs/finish', jobController.completeJob);
-router.delete(
-    "/jobs/cleanup",
-    authMiddleware,
-    jobController.cleanupJobs
-);
+router.delete("/jobs/cleanup", jobController.cleanupJobs);
+
 module.exports = router;

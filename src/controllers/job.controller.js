@@ -62,16 +62,17 @@ async function createJob(req, res) {
 
 async function cleanupJobs(req, res) {
   try {
-    const result = await jobService.cleanupPendingAndInProgress();
+    const result = await queueService.cleanupPendingAndInProgress();
     return res.status(200).json({
       ok: true,
-      message: "Fila limpa e jobs pendentes/em andamento removidos.",
+      message: "Jobs pending/in_progress removidos.",
       ...result,
     });
   } catch (err) {
+    console.error(err);
     return res.status(500).json({
       ok: false,
-      message: "Erro ao limpar fila e deletar jobs.",
+      message: "Erro ao limpar jobs.",
       error: err.message,
     });
   }
