@@ -60,10 +60,26 @@ async function createJob(req, res) {
   }
 }
 
-
+async function cleanupJobs(req, res) {
+  try {
+    const result = await jobService.cleanupPendingAndInProgress();
+    return res.status(200).json({
+      ok: true,
+      message: "Fila limpa e jobs pendentes/em andamento removidos.",
+      ...result,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      ok: false,
+      message: "Erro ao limpar fila e deletar jobs.",
+      error: err.message,
+    });
+  }
+}
 
 module.exports = {
   nextJob,
   completeJob,
-  createJob
+  createJob,
+  cleanupJobs
 };
